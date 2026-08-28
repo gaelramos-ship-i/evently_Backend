@@ -16,6 +16,7 @@ const startServer = async () => {
 startServer()
 
 const authRoutes = require('./routes/authRoutes')
+const eventRoutes = require('./routes/eventRoutes')
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // Fenetre de 15 minutes,
@@ -36,6 +37,7 @@ const corsOptions = {
 app.use(cors(corsOptions))
 
 app.use('/api/v1/auth', authRoutes)
+app.use('/api/v1/event', eventRoutes)
 
 app.get('/', (req, res) => {
     res.send('Bienvenue sur mon API RESTful !')
