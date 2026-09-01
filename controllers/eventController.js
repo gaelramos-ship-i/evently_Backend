@@ -1,6 +1,3 @@
-const { QueryTypes } = require("sequelize")
-const { sequelize } = require("../config/db")
-
 /* US3: En tant qu'utilisateur, je veux rechercher un événement par mot-clé ou par lieu, afin de trouver rapidement une sortie qui m'intéresse. */
 
 exports.getEvent = async (req, res) => {
@@ -14,22 +11,14 @@ exports.getEvent = async (req, res) => {
             })
         }
 
-        const params = new URLSearchParams()
-
-        if (keyword) {
-            params.append("search", keyword)
-        }
-
-        if (location) {
-            params.append("location", location)
-        }
+        const search = keyword || location
 
         const response = await fetch(
-            `https://api.openagenda.com/v2/agendas?${params.toString()}`,
+            `https://api.openagenda.com/v2/agendas?search=${search}`,
             {
                 method: "GET",
                 headers: {
-                    Authorization: `Bearer ${API_KEY_OPENAGENDA}`,
+                    key: API_KEY_OPENAGENDA,
                 }
             }
         )
@@ -42,28 +31,29 @@ exports.getEvent = async (req, res) => {
 
         const agendaUIDs = data.agendas.map(agenda => agenda.uid)
 
-        const agendas = await Promise.all(
+        const results = await Promise.all(
             agendaUIDs.map(async (uid) => {
                 const response = await fetch(
-                    `https://api.openagenda.com/v2/agendas/${uid}`,
+                    `https://api.openagenda.com/v2/agendas/${uid}/events?search=${search}`,
                     {
                         method: "GET",
                         headers: {
-                            Authorization: `Bearer ${API_KEY_OPENAGENDA}`,
+                            key: API_KEY_OPENAGENDA,
                         }
                     }
                 )
 
                 if (!response.ok) {
-                    return null
+                    return []
                 }
 
                 return await response.json()
             })
         )
+        const events = results.flatMap(result => result.events || [])
 
         return res.status(200).json({
-            agendas: agendas.filter(Boolean)
+            events
         })
 
     } catch (err) {
