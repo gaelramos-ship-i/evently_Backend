@@ -1,8 +1,9 @@
 const express = require('express')
 const router = express.Router()
-const { addFav } = require('../controllers/favController')
+const { addFav, getFav } = require('../controllers/favController')
 const { authMiddleware } = require('../middleware/authMiddleware')
 
-router.post('/:eventId', authMiddleware, addFav)
+router.post('/:uidAgenda/:uidEvent', authMiddleware, addFav)
+router.get('/', authMiddleware, getFav)
 
 module.exports = router
