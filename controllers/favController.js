@@ -47,7 +47,6 @@ exports.addFav = async (req, res) => {
         })
 
     } catch (err) {
-        console.log(err)
         return res.status(500).json({
             message: "Erreur lors de l'ajout aux favoris"
         })
@@ -141,6 +140,31 @@ exports.getFav = async (req, res) => {
     } catch (err) {
         return res.status(500).json({
             message: "Erreur lors de l'affichage des favoris"
+        })
+    }
+}
+
+exports.deleteFav = async (req, res) => {
+    try {
+
+        const userId = req.user.id_user
+        const { uidEvent } = req.params
+
+        await sequelize.query(`
+            DELETE FROM "Favoris"
+            WHERE fk_id_user = :userId AND uid_event = :uidEvent
+        `, {
+            replacements: { userId, uidEvent },
+            type: QueryTypes.DELETE
+        })
+
+        return res.status(200).json({
+            message: "Retiré des favoris"
+        })
+
+    } catch (err) {
+        return res.status(500).json({
+            message: "Erreur lors de la suppresion du favori"
         })
     }
 }
