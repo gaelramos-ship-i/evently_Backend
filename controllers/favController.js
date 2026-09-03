@@ -86,9 +86,47 @@ exports.getFav = async (req, res) => {
                 }
 
                 const data = await response.json()
+                const event = data.event
+
+                const eventExist = await sequelize.query(`
+                    SELECT 1 FROM "Events" WHERE uid_event = :uidEvent
+                `, {
+                    replacements: { uidEvent: fav.uid_event },
+                    type: QueryTypes.SELECT
+                })
+
+                if (eventExist.length === 0) {
+                    const title = event.title.fr
+                    const shortDesc = event.description.fr
+                    const desc = event.longDescription.fr
+                    const city = event.location.city
+                    const address = event.location.address
+                    const filename = event.image.filename
+                    const imageUrl = `${event.image.base}${filename}`
+                    const sourceUrl = event.originAgenda.url
+                    const dateEvent = event.nextTiming.begin
+
+                    await sequelize.query(` 
+                    INSERT INTO "Events" (uid_event, title_event, shortdesc_event, desc_event, date_event, img_url, place_event, city_event, source_url)
+                    VALUES (:uidEvent, :title, :shortDesc, :desc, :dateEvent, :imgUrl, :placeEvent, :city, :sourceUrl)
+                `, {
+                    replacements: {
+                        uidEvent: fav.uid_event,
+                        title,
+                        shortDesc,
+                        desc,
+                        dateEvent,
+                        imgUrl: imageUrl,
+                        placeEvent: address,
+                        city,
+                        sourceUrl
+                    },
+                    type: QueryTypes.INSERT
+                })
+                }
 
                 return {
-                    ...data.event,
+                    ...event,
                     date_ajout: fav.date_ajout
                 }
             })
