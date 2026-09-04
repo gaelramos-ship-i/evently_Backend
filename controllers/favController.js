@@ -68,46 +68,70 @@ exports.getFav = async (req, res) => {
             type: QueryTypes.SELECT
         })
 
+        async function findCategory(name) {
+            const existing = await sequelize.query(`
+                SELECT id_category FROM "Categories" WHERE name_category = :name
+            `, {
+                replacements: { name },
+                type: QueryTypes.SELECT
+            })
+
+            if (existing.length > 0) {
+                return existing[0].id_category
+            }
+
+            const created = await sequelize.query(`
+                INSERT INTO "Categories" (name_category) VALUES (:name)
+            `, {
+                replacements: { name },
+                type: QueryTypes.INSERT
+            })
+
+            return created[0][0].id_category
+        }
+
         const events = await Promise.all(
-            favoris.map(async (fav) => {
-                const response = await fetch(
-                    `https://api.openagenda.com/v2/agendas/${fav.uid_agenda}/events/${fav.uid_event}`,
-                    {
-                        method: "GET",
-                        headers: {
-                            key: process.env.API_KEY_OPENAGENDA,
-                        }
+        favoris.map(async (fav) => {
+            const response = await fetch(
+                `https://api.openagenda.com/v2/agendas/${fav.uid_agenda}/events/${fav.uid_event}`,
+                {
+                    method: "GET",
+                    headers: {
+                        key: process.env.API_KEY_OPENAGENDA,
                     }
-                )
-
-                if (!response.ok) {
-                    return null
                 }
+            )
 
-                const data = await response.json()
-                const event = data.event
+            if (!response.ok) {
+                return null
+            }
 
-                const eventExist = await sequelize.query(`
+            const data = await response.json()
+            const event = data.event
+
+            const eventExist = await sequelize.query(`
                     SELECT 1 FROM "Events" WHERE uid_event = :uidEvent
                 `, {
-                    replacements: { uidEvent: fav.uid_event },
-                    type: QueryTypes.SELECT
-                })
+                replacements: { uidEvent: fav.uid_event },
+                type: QueryTypes.SELECT
+            })
 
-                if (eventExist.length === 0) {
-                    const title = event.title.fr
-                    const shortDesc = event.description.fr
-                    const desc = event.longDescription.fr
-                    const city = event.location.city
-                    const address = event.location.address
-                    const filename = event.image.filename
-                    const imageUrl = `${event.image.base}${filename}`
-                    const sourceUrl = event.originAgenda.url
-                    const dateEvent = event.nextTiming.begin
+            if (eventExist.length === 0) {
+                const title = event.title.fr
+                const shortDesc = event.description.fr
+                const desc = event.longDescription.fr
+                const city = event.location.city
+                const address = event.location.address
+                const filename = event.image.filename
+                const imageUrl = `${event.image.base}${filename}`
+                const sourceUrl = event.originAgenda.url
+                const dateEvent = event.nextTiming.begin
+                const priceEvent = event.conditions.fr
+                const idCategory = await findCategory('Autre')
 
-                    await sequelize.query(` 
-                    INSERT INTO "Events" (uid_event, title_event, shortdesc_event, desc_event, date_event, img_url, place_event, city_event, source_url)
-                    VALUES (:uidEvent, :title, :shortDesc, :desc, :dateEvent, :imgUrl, :placeEvent, :city, :sourceUrl)
+                await sequelize.query(` 
+                    INSERT INTO "Events" (uid_event, title_event, shortdesc_event, desc_event, date_event, img_url, place_event, city_event, source_url, price_event, fk_id_category)
+                    VALUES (:uidEvent, :title, :shortDesc, :desc, :dateEvent, :imgUrl, :placeEvent, :city, :sourceUrl, :priceEvent, :idCategory)
                 `, {
                     replacements: {
                         uidEvent: fav.uid_event,
@@ -118,30 +142,32 @@ exports.getFav = async (req, res) => {
                         imgUrl: imageUrl,
                         placeEvent: address,
                         city,
-                        sourceUrl
+                        sourceUrl,
+                        priceEvent,
+                        idCategory
                     },
                     type: QueryTypes.INSERT
                 })
-                }
+            }
 
-                return {
-                    ...event,
-                    date_ajout: fav.date_ajout
-                }
-            })
-        )
-
-        const validEvents = events.filter(Boolean)
-
-        return res.status(200).json({
-            favoris: validEvents
+            return {
+                ...event,
+                date_ajout: fav.date_ajout
+            }
         })
+    )
 
-    } catch (err) {
-        return res.status(500).json({
-            message: "Erreur lors de l'affichage des favoris"
-        })
-    }
+    const validEvents = events.filter(Boolean)
+
+    return res.status(200).json({
+        favoris: validEvents
+    })
+
+} catch (err) {
+    return res.status(500).json({
+        message: "Erreur lors de l'affichage des favoris"
+    })
+}
 }
 
 exports.deleteFav = async (req, res) => {

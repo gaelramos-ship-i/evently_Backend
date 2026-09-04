@@ -1,7 +1,7 @@
 const { QueryTypes } = require("sequelize")
 const { sequelize } = require("../config/db")
 
-/* US3: En tant qu'utilisateur, je veux rechercher un événement par mot-clé ou par lieu, afin de trouver rapidement une sortie qui m'intéresse. */
+/* En tant qu'utilisateur, je veux rechercher un événement par mot-clé ou par lieu, afin de trouver rapidement une sortie qui m'intéresse. */
 
 exports.getEvent = async (req, res) => {
     try {
