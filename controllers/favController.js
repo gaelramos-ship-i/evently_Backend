@@ -7,20 +7,20 @@ exports.addFav = async (req, res) => {
     try {
 
         const userId = req.user.id_user;
-        const { uidEvent, uidAgenda } = req.params
+        const { uuidEvent } = req.params
 
-        if (!uidEvent || !uidAgenda) {
+        if (!uuidEvent) {
             return res.status(400).json({
-                message: "L'uidEvent et uidAgenda sont obligatoire"
+                message: "L'uuidEvent est obligatoire"
             })
         }
 
         const favExist = await sequelize.query(`
             SELECT 1
             FROM "Favoris"
-            WHERE fk_id_user = :userId AND uid_event = :uidEvent
+            WHERE fk_id_user = :userId AND uuid_event = :uuidEvent
         `, {
-            replacements: { userId, uidEvent },
+            replacements: { userId, uuidEvent },
             type: QueryTypes.SELECT
         })
 
@@ -31,13 +31,12 @@ exports.addFav = async (req, res) => {
         }
 
         await sequelize.query(`
-            INSERT INTO "Favoris" (fk_id_user, uid_event, uid_agenda, date_ajout)
-            VALUES (:userId, :uidEvent, :uidAgenda, CURRENT_DATE)
+            INSERT INTO "Favoris" (fk_id_user, uuid_event, date_ajout)
+            VALUES (:userId, :uuidEvent, CURRENT_DATE)
         `, {
             replacements: {
                 userId,
-                uidEvent,
-                uidAgenda
+                uuidEvent
             },
             type: QueryTypes.INSERT
         })
@@ -47,6 +46,7 @@ exports.addFav = async (req, res) => {
         })
 
     } catch (err) {
+        console.error(err)
         return res.status(500).json({
             message: "Erreur lors de l'ajout aux favoris"
         })
