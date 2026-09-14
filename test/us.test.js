@@ -26,15 +26,26 @@ const createMockRes = () => {
 
 describe('Tests des contrôleurs', () => {
 
+    let userA, userB, tokenA
+    const testEmails = ['test_us_a@example.com', 'test_us_b@example.com']
+
     before(async () => {
         await sequelize.authenticate()
+        await sequelize.query(
+            'DELETE FROM "Users" WHERE "email_user" IN (:emails)',
+            { replacements: { emails: testEmails } }
+        )
     })
 
     after(async () => {
+        await sequelize.query(
+            'DELETE FROM "Users" WHERE "email_user" IN (:emails)',
+            { replacements: { emails: testEmails } }
+        )
         await sequelize.close()
     })
 
-    test('register - création de compte', async () => {
+    test('US1: Register user with email, name, strong password', async () => {
         const reqA = {
             body: {
                 name: 'Alice Tester',
@@ -79,5 +90,60 @@ describe('Tests des contrôleurs', () => {
         assert.strictEqual(res.statusCode, 200)
         assert.ok(res.body.token)
         tokenA = res.body.token
+    })
+
+    test('US3: Doit renvoyer 400 si aucun mot-clé ni département est fourni', async () => {
+        const req = { query: {} }
+        const res = createMockRes()
+
+        await getEvent(req, res)
+
+        assert.strictEqual(res.statusCode, 400)
+        assert.strictEqual(res.body.message, "Veuillez renseigner un mot-clé ou une ville")
+    })
+
+    test('US3: Doit renvoyer 200 et la liste des événements si la recherche est valide', async () => {
+        const mockEvents = [{ id: 'idEvent', label: 'Concert de Jazz' }]
+
+        global.fetch = async (url, options) => {
+            assert.ok(url.includes('search=concert'))
+            assert.ok(url.includes('department=83'))
+            assert.strictEqual(options.headers['X-API-Key'], process.env.API_KEY_DATATOURISME)
+
+            return {
+                ok: true,
+                status: 200,
+                json: async () => mockEvents
+            }
+        }
+
+        const req = {
+            query: {
+                keyword: 'concert',
+                department: '83'
+            }
+        }
+        const res = createMockRes()
+
+        await getEvent(req, res)
+
+        assert.strictEqual(res.statusCode, 200)
+        assert.deepStrictEqual(res.body.data, mockEvents)
+    })
+
+    test("US3: Doit renvoyer 500 si l'API DataTourisme échoue ou plante", async () => {
+        global.fetch = async () => {
+            throw new Error('API indisponible')
+        }
+
+        const req = {
+            query: { keyword: 'concert' }
+        }
+        const res = createMockRes()
+
+        await getEvent(req, res)
+
+        assert.strictEqual(res.statusCode, 500)
+        assert.strictEqual(res.body.message, "Erreur lors de la recherche des événements.")
     })
 })

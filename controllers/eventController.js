@@ -14,7 +14,11 @@ exports.getEvent = async (req, res) => {
             });
         }
 
-        const url = `https://api.datatourisme.fr/v1/entertainmentAndEvent?search=${keyword.toString()}&lang=fr&department=${department.toString()}`;
+        const params = new URLSearchParams({ lang: 'fr' });
+        if (keyword) params.append('search', keyword);
+        if (department) params.append('department', department);
+
+        const url = `https://api.datatourisme.fr/v1/entertainmentAndEvent?${params.toString()}`;
 
         const response = await fetch(url, {
             method: "GET",
