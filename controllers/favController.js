@@ -181,7 +181,7 @@ exports.deleteFav = async (req, res) => {
 
         await sequelize.query(`
             DELETE FROM "Favoris"
-            WHERE fk_id_user = :userId AND uid_event = :uidEvent
+            WHERE fk_id_user = :userId AND uuid_event = :uidEvent
         `, {
             replacements: { userId, uidEvent },
             type: QueryTypes.DELETE
