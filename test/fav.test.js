@@ -29,6 +29,12 @@ describe("US4: addFav", () => {
     let userA = null
 
     beforeEach(async () => {
+
+        await sequelize.query(
+            'DELETE FROM "Users" WHERE email_user = :email',
+            { replacements: { email: testEmail } }
+        )
+
         const reqA = {
             body: {
                 name: 'Alice Tester',
@@ -44,18 +50,21 @@ describe("US4: addFav", () => {
     })
 
     after(async () => {
-        if (userA) {
-            await sequelize.query(
-                'DELETE FROM "Users" WHERE email_user = :email',
-                { replacements: { email: testEmail } }
-            )
-        }
+        const userId = userA.id_user
+        await sequelize.query(
+            'DELETE FROM "Favoris" WHERE fk_id_user = :userId',
+            { replacements: { userId } }
+        )
+        await sequelize.query(
+            'DELETE FROM "Users" WHERE email_user = :email',
+            { replacements: { email: testEmail } }
+        )
         await sequelize.close()
     })
 
     test("Doit renvoyer 400 si uuidEvent n'est pas fourni dans les params", async () => {
         const req = {
-            user: { id_user: await userA.id_user },
+            user: { id_user: userA.id_user },
             params: {}
         }
         const res = createMockRes()
